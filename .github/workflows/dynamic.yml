@@ -6,7 +6,6 @@ on:
       buildVersion:
         description: 'SNAPSHOT Build Version'
         required: true
-        default: '1.0-SNAPSHOT'
 
 jobs:
   update-pom-and-build:
@@ -23,13 +22,13 @@ jobs:
 
       - name: Update POM.xml with SNAPSHOT version
         run: |
-          sed -i 's|<version>.*</version>|<version>${{ github.event.inputs.buildVersion }}</version>|' pom.xml
+          sed -i '/<name>swagger-petstore<\/name>/{n;s|<version>.*</version>|<version>${{ github.event.inputs.buildVersion }}</version>|}' pom.xml
 
       - name: Build with Maven
         run: mvn clean install
 
       - name: Create Pull Request
-        id: create-pr
+        if: ${{ success() }}
         uses: peter-evans/create-pull-request@v3
         with:
           commit-message: "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}"
