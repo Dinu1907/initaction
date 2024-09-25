@@ -23,6 +23,13 @@ jobs:
       - name: Update POM.xml with SNAPSHOT version
         run: |
           sed -i '/<name>swagger-petstore<\/name>/{n;s|<version>.*</version>|<version>${{ github.event.inputs.buildVersion }}</version>|}' pom.xml
+      
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add pom.xml
+          git commit -m "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}"
 
       - name: Build with Maven
         run: mvn clean install
