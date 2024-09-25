@@ -29,10 +29,16 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add pom.xml
-          git commit -m "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}"
+          git commit -m "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}" || echo "No changes to commit"
 
       - name: Build with Maven
         run: mvn clean install
+      
+      - name: Create and Push Branch
+        run: |
+          BRANCH_NAME="update-snapshot-${{ github.event.inputs.buildVersion }}"
+          git checkout -b $BRANCH_NAME
+          git push origin $BRANCH_NAME
 
       - name: Create Pull Request
         if: ${{ success() }}
