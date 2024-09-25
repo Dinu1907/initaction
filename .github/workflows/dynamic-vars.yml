@@ -1,0 +1,72 @@
+name: Maven Build and Auto-Merge Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      buildVersion:
+        description: 'SNAPSHOT Build Version'
+        required: true
+        default: '1.0-SNAPSHOT'
+
+jobs:
+  update-pom-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+
+      - name: Update POM.xml with SNAPSHOT version
+        run: |
+          sed -i 's|<version>.*</version>|<version>${{ github.event.inputs.buildVersion }}</version>|' pom.xml
+
+      - name: Build with Maven
+        run: mvn clean install
+
+      - name: Create Pull Request
+        id: create-pr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}"
+          title: "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}"
+          branch: "update-snapshot-${{ github.event.inputs.buildVersion }}"
+          delete-branch: true
+
+  codeql-analysis:
+    needs: update-pom-and-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.update-pom-and-build.steps.create-pr.outputs.branch }}
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
+
+  auto-merge:
+    needs: codeql-analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.update-pom-and-build.steps.create-pr.outputs.branch }}
+          
+      - name: Automatically merge PR
+        uses: pascalgn/automerge-action@v0.14.3
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+          MERGE_LABELS: "automerge,!work in progress"
+          MERGE_METHOD: "squash"
+          MERGE_COMMIT_MESSAGE: "auto-merge: (base branch)"
+          MERGE_RETRY_SLEEP: "10000"
+          MERGE_RETRIES: "10"
