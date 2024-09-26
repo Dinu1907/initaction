@@ -24,62 +24,16 @@ jobs:
         run: |
           sed -i '/<name>swagger-petstore<\/name>/{n;s|<version>.*</version>|<version>${{ github.event.inputs.buildVersion }}</version>|}' pom.xml
       
+      
+      - name: Build with Maven
+        run: mvn clean install
+
       - name: Commit changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add pom.xml
           git commit -m "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}" || echo "No changes to commit"
-
-      - name: Build with Maven
-        run: mvn clean install
+          git push origin main
       
-      - name: Create and Push Branch
-        run: |
-          BRANCH_NAME="update-snapshot-${{ github.event.inputs.buildVersion }}"
-          git checkout -b $BRANCH_NAME
-          git push origin $BRANCH_NAME
-        
-
-      - name: Create Pull Request
-        if: ${{ success() }}
-        uses: peter-evans/create-pull-request@v3
-        with:
-          commit-message: "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}"
-          title: "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}"
-          branch: "update-snapshot-${{ github.event.inputs.buildVersion }}"
-          delete-branch: true
-
-  codeql-analysis:
-    needs: update-pom-and-build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.update-pom-and-build.steps.create-pr.outputs.branch }}
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v1
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v1
-
-  auto-merge:
-    needs: codeql-analysis
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.update-pom-and-build.steps.create-pr.outputs.branch }}
-          
-      - name: Automatically merge PR
-        uses: pascalgn/automerge-action@v0.14.3
-        env:
-          GHUB_TOKEN: ${{ secrets.GHUB_TOKEN }} 
-          MERGE_LABELS: "automerge,!work in progress"
-          MERGE_METHOD: "squash"
-          MERGE_COMMIT_MESSAGE: "auto-merge: (base branch)"
-          MERGE_RETRY_SLEEP: "10000"
-          MERGE_RETRIES: "10"
+      
