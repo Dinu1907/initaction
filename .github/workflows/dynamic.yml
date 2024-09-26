@@ -40,7 +40,7 @@ jobs:
           git checkout -b $BRANCH_NAME
           git push origin $BRANCH_NAME
         env:
-          TOKEN: ${{ secrets.TOKEN }}
+          TOKEN: ${{ secrets.TOKEN }} 
 
       - name: Create Pull Request
         if: ${{ success() }}
@@ -78,7 +78,7 @@ jobs:
       - name: Automatically merge PR
         uses: pascalgn/automerge-action@v0.14.3
         env:
-          TOKEN: ${{ secrets.TOKEN }}
+          
           MERGE_LABELS: "automerge,!work in progress"
           MERGE_METHOD: "squash"
           MERGE_COMMIT_MESSAGE: "auto-merge: (base branch)"
