@@ -39,6 +39,8 @@ jobs:
           BRANCH_NAME="update-snapshot-${{ github.event.inputs.buildVersion }}"
           git checkout -b $BRANCH_NAME
           git push origin $BRANCH_NAME
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
 
       - name: Create Pull Request
         if: ${{ success() }}
