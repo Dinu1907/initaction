@@ -22,6 +22,8 @@ jobs:
        
       - name: Build with Maven
         run: mvn clean install
+
+
       - name: Configure Git user
         run: |
           git config --global user.name "GitHub Actions"
@@ -35,7 +37,7 @@ jobs:
         run: |
           git add pom.xml
           git commit -m "Update version to ${{ github.event.inputs.version }}"
-          git push origin master
+          git push origin main
         
              
     
