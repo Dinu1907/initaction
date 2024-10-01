@@ -54,7 +54,7 @@ jobs:
           delete-branch: true
 
   codeql-analysis:
-    needs: update-pom-and-build
+    needs: update-pom
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -80,7 +80,7 @@ jobs:
       - name: Automatically merge PR
         uses: pascalgn/automerge-action@v0.14.3
         env:
-          GHUB_TOKEN: ${{ secrets.GHUB_TOKEN }} 
+        
           MERGE_LABELS: "automerge,!work in progress"
           MERGE_METHOD: "squash"
           MERGE_COMMIT_MESSAGE: "auto-merge: (base branch)"
