@@ -1,27 +1,31 @@
-name: Build and PR with CodeQL Scan/Update
+
+
+
+name: Maven Build and Auto-Merge Workflow
 
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Snapshot build version'
+      buildVersion:
+        description: 'SNAPSHOT Build Version'
         required: true
-
 jobs:
   update-pom:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
+        
+       
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
-          java-version: '11'
-
+         distribution: 'temurin'
+         java-version: '11'
+       
       - name: Build with Maven
         run: mvn clean install
+
 
       - name: Configure Git user
         run: |
@@ -30,38 +34,61 @@ jobs:
 
       - name: Update version for swagger-petstore in pom.xml
         run: |
-          sed -i -E '/<artifactId>swagger-petstore<\/artifactId>/,/<\/version>/ s|<version>[0-9.]*</version>|<version>${{ github.event.inputs.version }}</version>|' pom.xml
+          sed -i -E '/<artifactId>swagger-petstore<\/artifactId>/,/<\/version>/ s|<version>[0-9.]*</version>|<version>${{ github.event.inputs.buildVersion }}</version>|' pom.xml
 
       - name: Commit and push version change
         run: |
           git add pom.xml
-          git commit -m "Update version to ${{ github.event.inputs.version }}"
-          git push origin master
+          git commit -m "Update version to ${{ github.event.inputs.buildVersion }}"
+          git push origin main
+        
+             
+    
+      
+           
 
-  codeql-scan:
+      - name: Create Pull Request
+        if: ${{ success() }}
+        uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}"
+          title: "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}"
+          branch: "update-snapshot-${{ github.event.inputs.buildVersion }}"
+          delete-branch: true
+
+  codeql-analysis:
     needs: update-pom
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.update-pom-and-build.steps.create-pr.outputs.branch }}
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
-        with:
-          languages: java
+        uses: github/codeql-action/init@v1
 
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v2
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
 
-  merge-pr:
-    needs: codeql-scan
+  auto-merge:
+    needs: codeql-analysis
     runs-on: ubuntu-latest
-    if: ${{ success() }}
     steps:
-      - name: Merge Pull Request
-        run: |
-          gh pr merge update-version-${{ github.event.inputs.version }} --merge
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.update-pom-and-build.steps.create-pr.outputs.branch }}
+          
+      - name: Automatically merge PR
+        uses: pascalgn/automerge-action@v0.14.3
+        env:
+        
+          MERGE_LABELS: "automerge,!work in progress"
+          MERGE_METHOD: "squash"
+          MERGE_COMMIT_MESSAGE: "auto-merge: (base branch)"
+          MERGE_RETRY_SLEEP: "10000"
+          MERGE_RETRIES: "10"
+          
+
+      
