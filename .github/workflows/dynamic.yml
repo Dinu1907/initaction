@@ -31,12 +31,12 @@ jobs:
 
       - name: Update version for swagger-petstore in pom.xml
         run: |
-          sed -i -E '/<artifactId>swagger-petstore<\/artifactId>/,/<\/version>/ s|<version>[0-9.]*</version>|<version>${{ github.event.inputs.version }}</version>|' pom.xml
+          sed -i -E '/<artifactId>swagger-petstore<\/artifactId>/,/<\/version>/ s|<version>[0-9.]*</version>|<version>${{ github.event.inputs.buildVersion }}</version>|' pom.xml
 
       - name: Commit and push version change
         run: |
           git add pom.xml
-          git commit -m "Update version to ${{ github.event.inputs.version }}"
+          git commit -m "Update version to ${{ github.event.inputs.buildVersion }}"
           git push origin main
         
              
