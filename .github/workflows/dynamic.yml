@@ -6,38 +6,41 @@ on:
       buildVersion:
         description: 'SNAPSHOT Build Version'
         required: true
-
 jobs:
-  update-pom-and-build:
+  update-pom:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Set up JDK 11
-        uses: actions/setup-java@v2
+        
+       
+      - name: Set up Java
+        uses: actions/setup-java@v3
         with:
-          java-version: '11'
-          distribution: 'adopt'
-
-      - name: Update POM.xml with SNAPSHOT version
-        run: |
-          sed -i '/<name>swagger-petstore<\/name>/{n;s|<version>.*</version>|<version>${{ github.event.inputs.buildVersion }}</version>|}' pom.xml
-      - name: Commit changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-      
+         distribution: 'temurin'
+         java-version: '11'
+       
       - name: Build with Maven
         run: mvn clean install
+      - name: Configure Git user
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
-      - name: Commit and push
+      - name: Update version for swagger-petstore in pom.xml
+        run: |
+          sed -i -E '/<artifactId>swagger-petstore<\/artifactId>/,/<\/version>/ s|<version>[0-9.]*</version>|<version>${{ github.event.inputs.version }}</version>|' pom.xml
+
+      - name: Commit and push version change
         run: |
           git add pom.xml
-          git commit -m "Update SNAPSHOT version to ${{ github.event.inputs.buildVersion }}" || echo "No changes to commit"
-          git push origin main
-        env:
-          GHUB_TOKEN: ${{ secrets.GHUB_TOKEN }}
+          git commit -m "Update version to ${{ github.event.inputs.version }}"
+          git push origin master
+        
+             
+    
+      
+           
 
       - name: Create Pull Request
         if: ${{ success() }}
